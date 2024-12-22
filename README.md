@@ -36,26 +36,29 @@ The structure of a complete frame transmitted between the host and the module is
 |Command|Data|Description|
 |:---:|:---:|:---|
 |80 00|XX XX ... XX|Forward **Data** from the COM1 of the UM982.|
+|80 01|XX|**XX** is 00 for success, and 01 for failure.|
+|80 02|XX|**XX** is 00 for success, and 01 for failure.|
 |80 03|XX XX ... XX|Forward **Data** from the COM3 of the UM982, if the module is set to RTK rover.|
 |81 00|XX YY|Return data **YY** in the register **XX** of the MPU6050.|
+|81 01|XX|**XX** is 00 for success, and 01 for failure.|
+|81 02|XX|**XX** is 00 for success, and 01 for failure.|
 |81 03|ACX ACY ACZ AVX AVY AVZ|Return the accelerations and angular velocities measured by the MPU6050. **ACX**, **ACY**, and **ACZ** represent the accelerations along the X-axis, Y-axis, and Z-axis, respectively. **AVX**, **AVY**, and **AVZ** represent the angular velocities along the X-axis, Y-axis, and Z-axis, respectively. Each value of acceleration and angular velocity is a double, with 8 bytes.|
+|82 00|XX|**XX** is 00 for success, and 01 for failure.|
 |82 01|XX XX YY|Return address XX XX and channel YY of the Lora module.|
-|8F 00||Command parsing succeed.|
-|8F 01||Command parsing Failed.|
 
 ### Protocol Summary
 
 |Request|Response|Description|
 |---|---|---|
 |00 00|80 00|Send to and receive from the COM1 of the UM982.|
-|00 01|8F 00 *or* 8F 01|Set the module as an RTK base.|
-|00 02|8F 00 *or* 8F 01|Set the module as an RTK rover with frequency.|
+|00 01|80 01|Set the module as an RTK base.|
+|00 02|80 02|Set the module as an RTK rover with frequency.|
 ||80 03|Receive from the COM3 of the UM982, if the module is set to RTK rover.|
 |01 00|81 00|Read data from the register of the MPU6050.|
-|01 01|8F 00 *or* 8F 01|Write data to the register of the MPU6050.|
-|01 02|8F 00 *or* 8F 01|Set the frequency of the IMU data.|
+|01 01|81 01|Write data to the register of the MPU6050.|
+|01 02|81 02|Set the frequency of the IMU data.|
 ||81 03|Receive measurements from the IMU.|
-|02 00|8F 00 *or* 8F 01|Set the address and channel of the Lora module.|
+|02 00|82 00|Set the address and channel of the Lora module.|
 |02 01|82 01|Get the address and channel of the Lora module.|
 
 ## RTK Initialization
