@@ -141,7 +141,7 @@ Send the following strings to E32-433T20S with M0=high and M1=high:
 /* Address: 00 03 */
 /* Channel: 14 */
 /* Settings saved on power down */
-uint8_t cmd[6] = {0xc0, 0x00, 0x03, 0x3d, 0x14, 0x40};
+uint8_t cmd[6] = {0xc0, 0x00, 0x03, 0x1d, 0x14, 0x40};
 ```
 
 or
@@ -150,7 +150,5 @@ or
 /* Address: 00 03 */
 /* Channel: 14 */
 /* Settings lost on power down */
-uint8_t cmd[6] = {0xc2, 0x00, 0x03, 0x3d, 0x14, 0x40};
+uint8_t cmd[6] = {0xc2, 0x00, 0x03, 0x1d, 0x14, 0x40};
 ```
-
-Notice: In setting mode, baud rate must be 9600 bps. But when transmitting, baud rate is 115200 bps.
