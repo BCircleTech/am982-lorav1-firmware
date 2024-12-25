@@ -10,11 +10,10 @@ Use a USB Type-C cable to connect the host to the AM982-STDV1 module. A separate
 
 The structure of a complete frame transmitted between the host and the module is as follows, in HEX.
 
-|Header|Length|Command|Data|Checksum|Trailer|
-|:---:|:---:|:---:|:---:|:---:|:---:|
-|AC 53|XX XX|XX XX|XX XX ... XX|XX|35 CA|
+|Header|Command|Data|Checksum|Trailer|
+|:---:|:---:|:---:|:---:|:---:|
+|AC 53|XX XX|XX XX ... XX|XX|35 CA|
 
-* **Length** is the totle size of **Command** and **Data** in bytes.
 * The size of **Data** is variable and can be 0, but no more than 65533.
 * **Checksum** is derived from both **Command** and **Data**.
 
