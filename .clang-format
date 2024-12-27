@@ -1,0 +1,17 @@
+UseTab: Never
+IndentWidth: 4
+IndentExternBlock: NoIndent
+BreakBeforeBraces: Allman
+KeepEmptyLinesAtTheStartOfBlocks: false
+AllowShortIfStatementsOnASingleLine: false
+IndentCaseLabels: false
+ColumnLimit: 0
+AccessModifierOffset: -4
+FixNamespaceComments: false
+IncludeCategories: 
+  - Regex:        '^<.*'
+    Priority:     -1
+  - Regex:        '^"[A-Z].*'
+    Priority:	    0
+  - Regex:        '^"[a-z].*'
+    Priority:	    1
