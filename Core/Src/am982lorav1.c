@@ -42,7 +42,7 @@ void ResetRTK()
     HAL_GPIO_WritePin(RTK_NRST_GPIO_Port, RTK_NRST_Pin, GPIO_PIN_SET);
 }
 
-void SetRTKConf(uint8_t *cmd, uint16_t size)
+void SetRTKConf(uint8_t *cmd, uint32_t size)
 {
     uint8_t *tmp = malloc(size + 2);
     memcpy(tmp, cmd, size);
@@ -52,7 +52,7 @@ void SetRTKConf(uint8_t *cmd, uint16_t size)
     free(tmp);
 }
 
-void SetRTKBaseData(uint8_t *data, uint16_t size)
+void SetRTKBaseData(uint8_t *data, uint32_t size)
 {
     HAL_UART_Transmit_DMA(rtkCOM3Ptr, data, size);
 }
@@ -213,7 +213,7 @@ void WriteIMUReg(uint8_t addr, uint8_t data)
     free(tmp);
 }
 
-void WriteIMURegBits(uint8_t addr, uint16_t start, uint16_t len, uint8_t data)
+void WriteIMURegBits(uint8_t addr, uint32_t start, uint32_t len, uint8_t data)
 {
     uint8_t tmp, mask;
     ReadIMUReg(addr, &tmp);
@@ -420,7 +420,7 @@ void GetAUX(uint8_t *aux)
     }
 }
 
-void SetLoraData(uint8_t *data, uint16_t size)
+void SetLoraData(uint8_t *data, uint32_t size)
 {
     HAL_UART_Transmit_DMA(loraUARTPtr, data, size);
 }
@@ -457,7 +457,7 @@ void GetLoraConf(uint16_t *addr, uint8_t *channel)
     osDelay(100);
 }
 
-void LoraConfCallback(uint8_t *data, uint16_t size)
+void LoraConfCallback(uint8_t *data, uint32_t size)
 {
     if (loraConfFlag == 1 && size == 6)
     {
