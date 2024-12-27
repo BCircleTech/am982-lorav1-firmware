@@ -51,14 +51,28 @@
 osThreadId_t MainHandle;
 const osThreadAttr_t Main_attributes = {
   .name = "Main",
-  .stack_size = 512 * 4,
+  .stack_size = 4096 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for RTKCOM1 */
 osThreadId_t RTKCOM1Handle;
 const osThreadAttr_t RTKCOM1_attributes = {
   .name = "RTKCOM1",
-  .stack_size = 512 * 4,
+  .stack_size = 1024 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for RTKCOM3 */
+osThreadId_t RTKCOM3Handle;
+const osThreadAttr_t RTKCOM3_attributes = {
+  .name = "RTKCOM3",
+  .stack_size = 1024 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for IMU */
+osThreadId_t IMUHandle;
+const osThreadAttr_t IMU_attributes = {
+  .name = "IMU",
+  .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
@@ -69,6 +83,8 @@ const osThreadAttr_t RTKCOM1_attributes = {
 
 void StartMain(void *argument);
 void StartRTKCOM1(void *argument);
+void StartRTKCOM3(void *argument);
+void StartIMU(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -105,6 +121,12 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of RTKCOM1 */
   RTKCOM1Handle = osThreadNew(StartRTKCOM1, NULL, &RTKCOM1_attributes);
+
+  /* creation of RTKCOM3 */
+  RTKCOM3Handle = osThreadNew(StartRTKCOM3, NULL, &RTKCOM3_attributes);
+
+  /* creation of IMU */
+  IMUHandle = osThreadNew(StartIMU, NULL, &IMU_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -152,6 +174,42 @@ __weak void StartRTKCOM1(void *argument)
     osDelay(1);
   }
   /* USER CODE END StartRTKCOM1 */
+}
+
+/* USER CODE BEGIN Header_StartRTKCOM3 */
+/**
+* @brief Function implementing the RTKCOM3 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartRTKCOM3 */
+__weak void StartRTKCOM3(void *argument)
+{
+  /* USER CODE BEGIN StartRTKCOM3 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartRTKCOM3 */
+}
+
+/* USER CODE BEGIN Header_StartIMU */
+/**
+* @brief Function implementing the IMU thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartIMU */
+__weak void StartIMU(void *argument)
+{
+  /* USER CODE BEGIN StartIMU */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartIMU */
 }
 
 /* Private application code --------------------------------------------------*/
