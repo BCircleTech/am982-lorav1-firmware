@@ -65,7 +65,7 @@ const osThreadAttr_t RTKCOM1_attributes = {
 osThreadId_t RTKCOM3Handle;
 const osThreadAttr_t RTKCOM3_attributes = {
   .name = "RTKCOM3",
-  .stack_size = 1024 * 4,
+  .stack_size = 2048 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for IMU */
@@ -73,6 +73,13 @@ osThreadId_t IMUHandle;
 const osThreadAttr_t IMU_attributes = {
   .name = "IMU",
   .stack_size = 1024 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for LORA */
+osThreadId_t LORAHandle;
+const osThreadAttr_t LORA_attributes = {
+  .name = "LORA",
+  .stack_size = 2048 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
@@ -85,6 +92,7 @@ void StartMain(void *argument);
 void StartRTKCOM1(void *argument);
 void StartRTKCOM3(void *argument);
 void StartIMU(void *argument);
+void StartLORA(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -127,6 +135,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of IMU */
   IMUHandle = osThreadNew(StartIMU, NULL, &IMU_attributes);
+
+  /* creation of LORA */
+  LORAHandle = osThreadNew(StartLORA, NULL, &LORA_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -210,6 +221,24 @@ __weak void StartIMU(void *argument)
     osDelay(1);
   }
   /* USER CODE END StartIMU */
+}
+
+/* USER CODE BEGIN Header_StartLORA */
+/**
+* @brief Function implementing the LORA thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartLORA */
+__weak void StartLORA(void *argument)
+{
+  /* USER CODE BEGIN StartLORA */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartLORA */
 }
 
 /* Private application code --------------------------------------------------*/
