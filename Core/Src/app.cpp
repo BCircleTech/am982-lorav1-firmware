@@ -9,13 +9,16 @@ extern "C"
 uint8_t initFlag = 0;
 
 uint8_t rtkCOM1RxBuff[512];
-uint8_t rtkCOM3RxBuff[512];
+uint8_t rtkCOM3RxBuff[2048];
+uint8_t loraRxBuff[2048];
 
 MessageBufferHandle_t usbToMain;
 MessageBufferHandle_t mainToRTKCOM1;
 MessageBufferHandle_t rtkCOM1ToMain;
 MessageBufferHandle_t rtkCOM3ToMain;
 MessageBufferHandle_t mainToIMU;
+MessageBufferHandle_t mainToLora;
+MessageBufferHandle_t loraToMain;
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 {
@@ -35,6 +38,14 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
             xMessageBufferSendFromISR(rtkCOM3ToMain, rtkCOM3RxBuff, size, &xHigherPriorityTaskWoken);
         }
         HAL_UARTEx_ReceiveToIdle_DMA(rtkCOM3Ptr, rtkCOM3RxBuff, sizeof(rtkCOM3RxBuff));
+    }
+    else if (huart->Instance == loraUARTPtr->Instance)
+    {
+        if (initFlag)
+        {
+            xMessageBufferSendFromISR(loraToMain, loraRxBuff, size, &xHigherPriorityTaskWoken);
+        }
+        HAL_UARTEx_ReceiveToIdle_DMA(loraUARTPtr, loraRxBuff, sizeof(loraRxBuff));
     }
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
@@ -69,12 +80,15 @@ void StartMain(void *argument)
 
     HAL_UARTEx_ReceiveToIdle_DMA(rtkCOM1Ptr, rtkCOM1RxBuff, sizeof(rtkCOM1RxBuff));
     HAL_UARTEx_ReceiveToIdle_DMA(rtkCOM3Ptr, rtkCOM3RxBuff, sizeof(rtkCOM3RxBuff));
+    HAL_UARTEx_ReceiveToIdle_DMA(loraUARTPtr, loraRxBuff, sizeof(loraRxBuff));
 
     usbToMain = xMessageBufferCreate(1024);
     mainToRTKCOM1 = xMessageBufferCreate(1024);
     rtkCOM1ToMain = xMessageBufferCreate(1024);
-    rtkCOM3ToMain = xMessageBufferCreate(1024);
+    rtkCOM3ToMain = xMessageBufferCreate(4096);
     mainToIMU = xMessageBufferCreate(1024);
+    mainToLora = xMessageBufferCreate(1024);
+    loraToMain = xMessageBufferCreate(4096);
 
     ResetRTK();
     ResetIMU();
@@ -119,6 +133,10 @@ void StartMain(void *argument)
             {
                 xMessageBufferSend(mainToIMU, (const void *)line.c_str(), line.length(), 10);
             }
+            else if (line[0] == 0x02)
+            {
+                xMessageBufferSend(mainToLora, (const void *)line.c_str(), line.length(), 10);
+            }
         }
 
         osDelay(100);
@@ -129,6 +147,7 @@ void StartRTKCOM1(void *argument)
 {
     uint8_t mainRxBuffer[1024];
     uint32_t mainRxBufferLen;
+
     while (1)
     {
         if (initFlag)
@@ -197,7 +216,7 @@ void StartRTKCOM1(void *argument)
 
 void StartRTKCOM3(void *argument)
 {
-    uint8_t rtkCOM3RxBuffer[1024];
+    uint8_t rtkCOM3RxBuffer[2048];
     uint32_t rtkCOM3RxBufferLen;
 
     while (1)
@@ -317,6 +336,54 @@ void StartIMU(void *argument)
             USB_Transmit(cmd, (uint8_t *)measurements, 24);
         }
         delayCount++;
+
+        osDelay(10);
+    }
+}
+
+void StartLORA(void *argument)
+{
+    uint8_t mainRxBuffer[1024];
+    uint32_t mainRxBufferLen;
+    uint8_t loraRxBuffer[2048];
+    uint32_t loraRxBufferLen;
+
+    while (1)
+    {
+        if (initFlag)
+        {
+            mainRxBufferLen = xMessageBufferReceive(mainToLora, mainRxBuffer, sizeof(mainRxBuffer), 0);
+            if (mainRxBufferLen > 0)
+            {
+                // parse mainRxBuffer
+                if (mainRxBuffer[1] == 0x00)
+                {
+                    if (mainRxBufferLen == 5)
+                    {
+                        uint16_t addr;
+                        uint8_t channel;
+                        addr = mainRxBuffer[2];
+                        addr = addr << 8 | mainRxBuffer[3];
+                        channel = mainRxBuffer[4];
+                        SetLoraConf(addr, channel);
+                        uint8_t cmd[2] = {0x82, 0x00};
+                        uint8_t data = 0x00;
+                        USB_Transmit(cmd, &data, 1);
+                    }
+                    else
+                    {
+                        uint8_t cmd[2] = {0x82, 0x00};
+                        uint8_t data = 0x01;
+                        USB_Transmit(cmd, &data, 1);
+                    }
+                }
+            }
+            loraRxBufferLen = xMessageBufferReceive(loraToMain, loraRxBuffer, sizeof(loraRxBuffer), 0);
+            if (loraRxBufferLen > 0)
+            {
+                // parse loraRxBuffer
+            }
+        }
 
         osDelay(10);
     }
