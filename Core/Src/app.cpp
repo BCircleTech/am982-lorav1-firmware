@@ -2,7 +2,7 @@
 
 extern "C"
 {
-#include "am982stdv1.h"
+#include "am982lorav1.h"
 #include "message_buffer.h"
 #include "usbd_cdc_if.h"
 
