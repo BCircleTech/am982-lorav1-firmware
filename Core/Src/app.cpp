@@ -7,6 +7,7 @@ extern "C"
 #include "usbd_cdc_if.h"
 
 uint8_t initFlag = 0;
+uint8_t rtkModeValue = 0;
 
 uint8_t rtkCOM1RxBuff[512];
 uint8_t rtkCOM3RxBuff[2048];
@@ -25,6 +26,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     if (huart->Instance == rtkCOM1Ptr->Instance)
     {
+        RTKModeCallback(rtkCOM1RxBuff, size);
         if (initFlag)
         {
             xMessageBufferSendFromISR(rtkCOM1ToMain, rtkCOM1RxBuff, size, &xHigherPriorityTaskWoken);
@@ -96,6 +98,7 @@ void StartMain(void *argument)
     InitIMU(MPU6050_CLOCK_PLL_XGYRO, MPU6050_ACCEL_FS_2, MPU6050_GYRO_FS_250);
     SetIMUDigitalLowPassFilter(MPU6050_DLPF_BW_5);
     SetIMUSampleRate(100);
+    GetRTKMode(&rtkModeValue);
 
     initFlag = 1;
 
@@ -172,6 +175,7 @@ void StartRTKCOM1(void *argument)
                         uint8_t data = 0x00;
                         USB_Transmit(cmd, &data, 1);
                         SetRTKBaseWithPosition(latitude, longitude, altitude);
+                        GetRTKMode(&rtkModeValue);
                     }
                     else if (mainRxBufferLen == 3)
                     {
@@ -181,6 +185,7 @@ void StartRTKCOM1(void *argument)
                         uint8_t data = 0x00;
                         USB_Transmit(cmd, &data, 1);
                         SetRTKBaseWithTime(seconds);
+                        GetRTKMode(&rtkModeValue);
                     }
                     else
                     {
@@ -199,6 +204,7 @@ void StartRTKCOM1(void *argument)
                         uint8_t data = 0x00;
                         USB_Transmit(cmd, &data, 1);
                         SetRTKRover(freq);
+                        GetRTKMode(&rtkModeValue);
                     }
                     else
                     {
