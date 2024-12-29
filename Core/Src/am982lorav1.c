@@ -204,6 +204,11 @@ void GetRTKMode(uint8_t *mode)
     *mode = rtkMode;
 }
 
+void GetRTKPPS(uint8_t *pps)
+{
+    *pps = HAL_GPIO_ReadPin(RTK_PPS_GPIO_Port, RTK_PPS_Pin);
+}
+
 void RTKModeCallback(uint8_t *data, uint32_t size)
 {
     if (rtkModeFlag == 1)
@@ -464,7 +469,18 @@ void GetAUX(uint8_t *aux)
 
 void SetLoraData(uint8_t *data, uint32_t size)
 {
-    HAL_UART_Transmit_DMA(loraUARTPtr, data, size);
+    uint32_t count = 0;
+    uint32_t len;
+    while (count != size)
+    {
+        while (!HAL_GPIO_ReadPin(LORA_AUX_GPIO_Port, LORA_AUX_Pin))
+        {
+            osDelay(1);
+        }
+        len = (size - count) > 512 ? 512 : (size - count);
+        HAL_UART_Transmit_DMA(loraUARTPtr, data + count, len);
+        count += len;
+    }
 }
 
 void SetLoraConf(uint16_t addr, uint8_t channel)
@@ -475,8 +491,13 @@ void SetLoraConf(uint16_t addr, uint8_t channel)
     cmd[4] = channel;
     SetLoraMode(LORA_MODE_CONF);
     osDelay(100);
+    loraConfFlag = 1;
     HAL_UART_Transmit_DMA(loraUARTPtr, cmd, sizeof(cmd));
     osDelay(100);
+    while (loraConfFlag)
+    {
+        osDelay(1);
+    }
     SetLoraMode(LORA_MODE_NORMAL);
     osDelay(100);
 }
@@ -499,7 +520,7 @@ void GetLoraConf(uint16_t *addr, uint8_t *channel)
     osDelay(100);
 }
 
-void LoraConfCallback(uint8_t *data, uint32_t size)
+void LoraConfCallback(uint8_t *data, uint32_t size, uint8_t *res)
 {
     if (loraConfFlag == 1 && size == 6)
     {
@@ -507,5 +528,10 @@ void LoraConfCallback(uint8_t *data, uint32_t size)
         loraAddr = loraAddr << 8 | data[2];
         loraChannel = data[4];
         loraConfFlag = 0;
+        *res = 0x01;
+    }
+    else
+    {
+        *res = 0x00;
     }
 }

@@ -43,7 +43,9 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
     }
     else if (huart->Instance == loraUARTPtr->Instance)
     {
-        if (initFlag)
+        uint8_t res;
+        LoraConfCallback(loraRxBuff, size, &res);
+        if (initFlag && !res)
         {
             xMessageBufferSendFromISR(loraToMain, loraRxBuff, size, &xHigherPriorityTaskWoken);
         }
@@ -225,6 +227,8 @@ void StartRTKCOM3(void *argument)
     uint8_t rtkCOM3RxBuffer[2048];
     uint32_t rtkCOM3RxBufferLen;
 
+    uint8_t pps;
+
     while (1)
     {
         if (initFlag)
@@ -233,9 +237,25 @@ void StartRTKCOM3(void *argument)
             if (rtkCOM3RxBufferLen > 0)
             {
                 // parse rtkCOM3RxBuffer
-                uint8_t cmd[2] = {0x80, 0x03};
-                USB_Transmit(cmd, rtkCOM3RxBuffer, rtkCOM3RxBufferLen);
+                if (rtkModeValue)
+                {
+                    uint8_t cmd[2] = {0x80, 0x03};
+                    USB_Transmit(cmd, rtkCOM3RxBuffer, rtkCOM3RxBufferLen);
+                }
+                else
+                {
+                    SetLoraData(rtkCOM3RxBuffer, rtkCOM3RxBufferLen);
+                }
             }
+        }
+        GetRTKPPS(&pps);
+        if (pps)
+        {
+            LedRunOff();
+        }
+        else
+        {
+            LedRunOn();
         }
 
         osDelay(10);
@@ -388,6 +408,7 @@ void StartLORA(void *argument)
             if (loraRxBufferLen > 0)
             {
                 // parse loraRxBuffer
+                SetRTKBaseData(loraRxBuffer, loraRxBufferLen);
             }
         }
 

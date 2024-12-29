@@ -393,6 +393,7 @@ void SetRTKBaseWithPosition(double latitude, double longitude, double altitude);
 void SetRTKBaseWithTime(unsigned int seconds);
 void SetRTKRover(unsigned int freq);
 void GetRTKMode(uint8_t *mode);
+void GetRTKPPS(uint8_t *pps);
 void RTKModeCallback(uint8_t *data, uint32_t size);
 
 void ResetIMU();
@@ -411,6 +412,6 @@ void GetAUX(uint8_t *aux);
 void SetLoraData(uint8_t *data, uint32_t size);
 void SetLoraConf(uint16_t addr, uint8_t channel);
 void GetLoraConf(uint16_t *addr, uint8_t *channel);
-void LoraConfCallback(uint8_t *data, uint32_t size);
+void LoraConfCallback(uint8_t *data, uint32_t size, uint8_t *res);
 
 #endif
