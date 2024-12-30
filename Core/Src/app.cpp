@@ -11,7 +11,7 @@ uint8_t rtkModeValue = 0;
 
 uint8_t rtkCOM1RxBuff[512];
 uint8_t rtkCOM3RxBuff[2048];
-uint8_t loraRxBuff[2048];
+uint8_t loraRxBuff[512];
 
 MessageBufferHandle_t usbToMain;
 MessageBufferHandle_t mainToRTKCOM1;
@@ -89,10 +89,10 @@ void StartMain(void *argument)
     usbToMain = xMessageBufferCreate(1024);
     mainToRTKCOM1 = xMessageBufferCreate(1024);
     rtkCOM1ToMain = xMessageBufferCreate(1024);
-    rtkCOM3ToMain = xMessageBufferCreate(4096);
+    rtkCOM3ToMain = xMessageBufferCreate(8192);
     mainToIMU = xMessageBufferCreate(1024);
     mainToLora = xMessageBufferCreate(1024);
-    loraToMain = xMessageBufferCreate(4096);
+    loraToMain = xMessageBufferCreate(1024);
 
     ResetRTK();
     ResetIMU();
@@ -227,8 +227,6 @@ void StartRTKCOM3(void *argument)
     uint8_t rtkCOM3RxBuffer[2048];
     uint32_t rtkCOM3RxBufferLen;
 
-    uint8_t pps;
-
     while (1)
     {
         if (initFlag)
@@ -244,18 +242,17 @@ void StartRTKCOM3(void *argument)
                 }
                 else
                 {
-                    SetLoraData(rtkCOM3RxBuffer, rtkCOM3RxBufferLen);
+                    if (xMessageBufferSpacesAvailable(rtkCOM3ToMain) > 2100)
+                    {
+                        SetLoraData(rtkCOM3RxBuffer, rtkCOM3RxBufferLen);
+                        LedErrOff();
+                    }
+                    else
+                    {
+                        LedErrOn();
+                    }
                 }
             }
-        }
-        GetRTKPPS(&pps);
-        if (pps)
-        {
-            LedRunOff();
-        }
-        else
-        {
-            LedRunOn();
         }
 
         osDelay(10);
@@ -268,6 +265,7 @@ void StartIMU(void *argument)
     uint32_t mainRxBufferLen;
 
     float measurements[6];
+    uint8_t pps;
 
     uint32_t delay = 0;
     uint32_t delayCount = 0;
@@ -363,6 +361,16 @@ void StartIMU(void *argument)
         }
         delayCount++;
 
+        GetRTKPPS(&pps);
+        if (pps)
+        {
+            LedRunOff();
+        }
+        else
+        {
+            LedRunOn();
+        }
+
         osDelay(10);
     }
 }
@@ -371,7 +379,7 @@ void StartLORA(void *argument)
 {
     uint8_t mainRxBuffer[1024];
     uint32_t mainRxBufferLen;
-    uint8_t loraRxBuffer[2048];
+    uint8_t loraRxBuffer[1024];
     uint32_t loraRxBufferLen;
 
     while (1)
