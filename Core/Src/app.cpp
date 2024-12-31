@@ -17,6 +17,9 @@ uint8_t rtkCOM3RxBuff[2048];
 uint8_t rtkCOM3RxBuffAbort[2048];
 uint8_t loraRxBuff[512];
 
+// uint8_t dbug[128] = {0};
+// int dbugLen;
+
 MessageBufferHandle_t usbToMain;
 MessageBufferHandle_t mainToRTKCOM1;
 MessageBufferHandle_t rtkCOM1ToMain;
@@ -49,10 +52,14 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
                 {
                     memcpy(rtkCOM3RxBuffAbort + rtkCOM3RxBuffAbortSize, rtkCOM3RxBuff, size);
                     xMessageBufferSendFromISR(rtkCOM3ToMain, rtkCOM3RxBuffAbort, rtkCOM3RxBuffAbortSize + size, &xHigherPriorityTaskWoken);
+                    // dbugLen = snprintf((char *)dbug, sizeof(dbug), "Send: %ld*\n", rtkCOM3RxBuffAbortSize + size);
+                    // HAL_UART_Transmit_DMA(boardUARTPtr, dbug, dbugLen);
                 }
                 else
                 {
                     xMessageBufferSendFromISR(rtkCOM3ToMain, rtkCOM3RxBuff, size, &xHigherPriorityTaskWoken);
+                    // dbugLen = snprintf((char *)dbug, sizeof(dbug), "Send: %d\n", size);
+                    // HAL_UART_Transmit_DMA(boardUARTPtr, dbug, dbugLen);
                 }
                 rtkCOM3RxBuffAbortSize = 0;
                 LedErrOff();
@@ -61,6 +68,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
             {
                 memcpy(rtkCOM3RxBuffAbort, rtkCOM3RxBuff, size);
                 rtkCOM3RxBuffAbortSize = size;
+                // dbugLen = snprintf((char *)dbug, sizeof(dbug), "Abort: %d\n", size);
+                // HAL_UART_Transmit_DMA(boardUARTPtr, dbug, dbugLen);
                 LedErrOn();
             }
         }
@@ -434,6 +443,8 @@ void StartLORA(void *argument)
             if (loraRxBufferLen > 0)
             {
                 // parse loraRxBuffer
+                // dbugLen = snprintf((char *)dbug, sizeof(dbug), "Receive: %ld\n", loraRxBufferLen);
+                // HAL_UART_Transmit_DMA(boardUARTPtr, dbug, dbugLen);
                 SetRTKBaseData(loraRxBuffer, loraRxBufferLen);
             }
         }
