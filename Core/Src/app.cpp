@@ -4,13 +4,17 @@ extern "C"
 {
 #include "am982lorav1.h"
 #include "message_buffer.h"
+#include "string.h"
 #include "usbd_cdc_if.h"
 
 uint8_t initFlag = 0;
 uint8_t rtkModeValue = 0;
+uint32_t rtkCOM3RxBuffAbortSize = 0;
+TickType_t lastRTKBaseTimestamp = 0;
 
 uint8_t rtkCOM1RxBuff[512];
 uint8_t rtkCOM3RxBuff[2048];
+uint8_t rtkCOM3RxBuffAbort[2048];
 uint8_t loraRxBuff[512];
 
 MessageBufferHandle_t usbToMain;
@@ -35,10 +39,32 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
     }
     else if (huart->Instance == rtkCOM3Ptr->Instance)
     {
+        TickType_t currentRTKBaseTimestamp = xTaskGetTickCountFromISR();
+        TickType_t deltaTime = currentRTKBaseTimestamp - lastRTKBaseTimestamp;
         if (initFlag)
         {
-            xMessageBufferSendFromISR(rtkCOM3ToMain, rtkCOM3RxBuff, size, &xHigherPriorityTaskWoken);
+            if (xMessageBufferIsEmpty(rtkCOM3ToMain) == pdTRUE || deltaTime < 750)
+            {
+                if (rtkCOM3RxBuffAbortSize && deltaTime < 750)
+                {
+                    memcpy(rtkCOM3RxBuffAbort + rtkCOM3RxBuffAbortSize, rtkCOM3RxBuff, size);
+                    xMessageBufferSendFromISR(rtkCOM3ToMain, rtkCOM3RxBuffAbort, rtkCOM3RxBuffAbortSize + size, &xHigherPriorityTaskWoken);
+                }
+                else
+                {
+                    xMessageBufferSendFromISR(rtkCOM3ToMain, rtkCOM3RxBuff, size, &xHigherPriorityTaskWoken);
+                }
+                rtkCOM3RxBuffAbortSize = 0;
+                LedErrOff();
+            }
+            else
+            {
+                memcpy(rtkCOM3RxBuffAbort, rtkCOM3RxBuff, size);
+                rtkCOM3RxBuffAbortSize = size;
+                LedErrOn();
+            }
         }
+        lastRTKBaseTimestamp = currentRTKBaseTimestamp;
         HAL_UARTEx_ReceiveToIdle_DMA(rtkCOM3Ptr, rtkCOM3RxBuff, sizeof(rtkCOM3RxBuff));
     }
     else if (huart->Instance == loraUARTPtr->Instance)
@@ -89,7 +115,7 @@ void StartMain(void *argument)
     usbToMain = xMessageBufferCreate(1024);
     mainToRTKCOM1 = xMessageBufferCreate(1024);
     rtkCOM1ToMain = xMessageBufferCreate(1024);
-    rtkCOM3ToMain = xMessageBufferCreate(8192);
+    rtkCOM3ToMain = xMessageBufferCreate(4096);
     mainToIMU = xMessageBufferCreate(1024);
     mainToLora = xMessageBufferCreate(1024);
     loraToMain = xMessageBufferCreate(1024);
@@ -242,15 +268,7 @@ void StartRTKCOM3(void *argument)
                 }
                 else
                 {
-                    if (xMessageBufferSpacesAvailable(rtkCOM3ToMain) > 2100)
-                    {
-                        SetLoraData(rtkCOM3RxBuffer, rtkCOM3RxBufferLen);
-                        LedErrOff();
-                    }
-                    else
-                    {
-                        LedErrOn();
-                    }
+                    SetLoraData(rtkCOM3RxBuffer, rtkCOM3RxBufferLen);
                 }
             }
         }
