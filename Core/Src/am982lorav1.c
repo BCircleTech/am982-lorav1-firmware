@@ -471,18 +471,21 @@ void SetLoraData(uint8_t *data, uint32_t size)
 {
     uint32_t count = 0;
     uint32_t len;
+    uint32_t timeout;
     uint8_t current = 1;
     uint8_t last;
     while (count != size)
     {
         len = (size - count) > 512 ? 512 : (size - count);
         HAL_UART_Transmit_DMA(loraUARTPtr, data + count, len);
+        timeout = 0;
         do
         {
-            osDelay(1);
+            timeout++;
+            osDelay(10);
             last = current;
             current = HAL_GPIO_ReadPin(LORA_AUX_GPIO_Port, LORA_AUX_Pin);
-        } while (current == 0 || last == 1);
+        } while ((current == 0 || last == 1) && timeout < 100);
         osDelay(100);
         count += len;
     }
