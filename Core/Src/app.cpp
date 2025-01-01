@@ -131,12 +131,12 @@ void StartMain(void *argument)
 
     ResetRTK();
     ResetIMU();
-    osDelay(1000);
+    osDelay(2000);
     InitIMU(MPU6050_CLOCK_PLL_XGYRO, MPU6050_ACCEL_FS_2, MPU6050_GYRO_FS_250);
     SetIMUDigitalLowPassFilter(MPU6050_DLPF_BW_5);
     SetIMUSampleRate(100);
     GetRTKMode(&rtkModeValue);
-    osDelay(1000);
+    osDelay(2000);
 
     initFlag = 1;
 
