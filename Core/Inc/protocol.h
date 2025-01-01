@@ -5,7 +5,7 @@
 #include <list>
 #include <string>
 
-class Segment
+class Protocol
 {
 public:
     void Receive(const uint8_t *data, const uint32_t &len);

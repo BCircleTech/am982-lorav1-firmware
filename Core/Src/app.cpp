@@ -102,7 +102,7 @@ void USB_CDC_RxHandler(uint8_t *data, uint32_t size)
 void USB_Transmit(uint8_t cmd[2], uint8_t *data, uint32_t len)
 {
     std::string res;
-    Segment::Pack(res, cmd, std::string((char *)data, len));
+    Protocol::Pack(res, cmd, std::string((char *)data, len));
     for (unsigned int i = 0; i < 5; i++)
     {
         if (CDC_Transmit_HS((uint8_t *)res.c_str(), res.length()) == USBD_OK)
@@ -144,7 +144,7 @@ void StartMain(void *argument)
     uint8_t rtkCOM1RxBuffer[1024];
     uint32_t rtkCOM1RxBufferLen;
 
-    Segment segment;
+    Protocol protocol;
     std::string line;
 
     while (1)
@@ -153,7 +153,7 @@ void StartMain(void *argument)
         if (usbRxBufferLen > 0)
         {
             // parse usbRxBuffer
-            segment.Receive(usbRxBuffer, usbRxBufferLen);
+            protocol.Receive(usbRxBuffer, usbRxBufferLen);
         }
         rtkCOM1RxBufferLen = xMessageBufferReceive(rtkCOM1ToMain, rtkCOM1RxBuffer, sizeof(rtkCOM1RxBuffer), 0);
         if (rtkCOM1RxBufferLen > 0)
@@ -163,7 +163,7 @@ void StartMain(void *argument)
             USB_Transmit(cmd, rtkCOM1RxBuffer, rtkCOM1RxBufferLen);
         }
 
-        if (segment.GetOne(line))
+        if (protocol.GetOne(line))
         {
             if (line[0] == 0x00)
             {
@@ -383,8 +383,11 @@ void StartIMU(void *argument)
             delayCount = 0;
             GetIMUAccel(measurements);
             GetIMUGyro(measurements + 3);
-            uint8_t cmd[2] = {0x81, 0x03};
-            USB_Transmit(cmd, (uint8_t *)measurements, 24);
+            if (rtkModeValue)
+            {
+                uint8_t cmd[2] = {0x81, 0x03};
+                USB_Transmit(cmd, (uint8_t *)measurements, 24);
+            }
         }
         delayCount++;
 

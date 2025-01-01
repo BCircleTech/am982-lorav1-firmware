@@ -1,6 +1,6 @@
 #include "protocol.h"
 
-void Segment::Receive(const uint8_t *data, const uint32_t &len)
+void Protocol::Receive(const uint8_t *data, const uint32_t &len)
 {
     mBuffer.append((char *)data, len);
     unsigned int bufferLen = mBuffer.length();
@@ -50,7 +50,7 @@ void Segment::Receive(const uint8_t *data, const uint32_t &len)
     }
 }
 
-bool Segment::GetOne(std::string &str)
+bool Protocol::GetOne(std::string &str)
 {
     if (!mSegments.empty())
     {
@@ -64,7 +64,7 @@ bool Segment::GetOne(std::string &str)
     }
 }
 
-void Segment::Pack(std::string &str, const uint8_t *cmd, const std::string &data)
+void Protocol::Pack(std::string &str, const uint8_t *cmd, const std::string &data)
 {
     uint8_t checksum;
     str.resize(data.length() + 7);

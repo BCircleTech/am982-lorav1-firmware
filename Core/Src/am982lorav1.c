@@ -462,7 +462,7 @@ void SetLoraMode(uint8_t mode)
     }
 }
 
-void GetAUX(uint8_t *aux)
+void GetLoraAUX(uint8_t *aux)
 {
     *aux = HAL_GPIO_ReadPin(LORA_AUX_GPIO_Port, LORA_AUX_Pin);
 }

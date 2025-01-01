@@ -408,7 +408,7 @@ void GetIMUGyro(float gyro[3]);
 void GetIMUTemp(float *temp);
 
 void SetLoraMode(uint8_t mode);
-void GetAUX(uint8_t *aux);
+void GetLoraAUX(uint8_t *aux);
 void SetLoraData(uint8_t *data, uint32_t size);
 void SetLoraConf(uint16_t addr, uint8_t channel);
 void GetLoraConf(uint16_t *addr, uint8_t *channel);
