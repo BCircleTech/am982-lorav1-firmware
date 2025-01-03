@@ -7,6 +7,23 @@ extern "C"
 #include "string.h"
 #include "usbd_cdc_if.h"
 
+#define CMD_00_00 (uint8_t *)"\x00\x00"
+#define CMD_00_01 (uint8_t *)"\x00\x01"
+#define CMD_00_02 (uint8_t *)"\x00\x02"
+#define CMD_01_00 (uint8_t *)"\x01\x00"
+#define CMD_01_01 (uint8_t *)"\x01\x01"
+#define CMD_01_02 (uint8_t *)"\x01\x02"
+#define CMD_02_00 (uint8_t *)"\x02\x00"
+#define CMD_80_00 (uint8_t *)"\x80\x00"
+#define CMD_80_01 (uint8_t *)"\x80\x01"
+#define CMD_80_02 (uint8_t *)"\x80\x02"
+#define CMD_80_03 (uint8_t *)"\x80\x03"
+#define CMD_81_00 (uint8_t *)"\x81\x00"
+#define CMD_81_01 (uint8_t *)"\x81\x01"
+#define CMD_81_02 (uint8_t *)"\x81\x02"
+#define CMD_81_03 (uint8_t *)"\x81\x03"
+#define CMD_82_00 (uint8_t *)"\x82\x00"
+
 uint8_t initFlag = 0;
 uint8_t rtkModeValue = 0;
 uint32_t rtkCOM3RxBuffAbortSize = 0;
@@ -160,8 +177,7 @@ void StartMain(void *argument)
         if (rtkCOM1RxBufferLen > 0)
         {
             // parse rtkCOM1RxBuffer
-            uint8_t cmd[2] = {0x80, 0x00};
-            USB_Transmit(cmd, rtkCOM1RxBuffer, rtkCOM1RxBufferLen);
+            USB_Transmit(CMD_80_00, rtkCOM1RxBuffer, rtkCOM1RxBufferLen);
         }
 
         if (protocol.GetOne(line))
@@ -209,9 +225,8 @@ void StartRTKCOM1(void *argument)
                         latitude = *(double *)(mainRxBuffer + 2);
                         longitude = *(double *)(mainRxBuffer + 10);
                         altitude = *(double *)(mainRxBuffer + 18);
-                        uint8_t cmd[2] = {0x80, 0x01};
                         uint8_t data = 0x00;
-                        USB_Transmit(cmd, &data, 1);
+                        USB_Transmit(CMD_80_01, &data, 1);
                         SetRTKBaseWithPosition(latitude, longitude, altitude);
                         GetRTKMode(&rtkModeValue);
                     }
@@ -219,17 +234,15 @@ void StartRTKCOM1(void *argument)
                     {
                         uint8_t seconds;
                         seconds = mainRxBuffer[2];
-                        uint8_t cmd[2] = {0x80, 0x01};
                         uint8_t data = 0x00;
-                        USB_Transmit(cmd, &data, 1);
+                        USB_Transmit(CMD_80_01, &data, 1);
                         SetRTKBaseWithTime(seconds);
                         GetRTKMode(&rtkModeValue);
                     }
                     else
                     {
-                        uint8_t cmd[2] = {0x80, 0x01};
                         uint8_t data = 0x01;
-                        USB_Transmit(cmd, &data, 1);
+                        USB_Transmit(CMD_80_01, &data, 1);
                     }
                 }
                 else if (mainRxBuffer[1] == 0x02)
@@ -238,17 +251,15 @@ void StartRTKCOM1(void *argument)
                     {
                         uint8_t freq;
                         freq = mainRxBuffer[2];
-                        uint8_t cmd[2] = {0x80, 0x02};
                         uint8_t data = 0x00;
-                        USB_Transmit(cmd, &data, 1);
+                        USB_Transmit(CMD_80_02, &data, 1);
                         SetRTKRover(freq);
                         GetRTKMode(&rtkModeValue);
                     }
                     else
                     {
-                        uint8_t cmd[2] = {0x80, 0x02};
                         uint8_t data = 0x01;
-                        USB_Transmit(cmd, &data, 1);
+                        USB_Transmit(CMD_80_02, &data, 1);
                     }
                 }
             }
@@ -273,8 +284,7 @@ void StartRTKCOM3(void *argument)
                 // parse rtkCOM3RxBuffer
                 if (rtkModeValue)
                 {
-                    uint8_t cmd[2] = {0x80, 0x03};
-                    USB_Transmit(cmd, rtkCOM3RxBuffer, rtkCOM3RxBufferLen);
+                    USB_Transmit(CMD_80_03, rtkCOM3RxBuffer, rtkCOM3RxBufferLen);
                 }
                 else
                 {
@@ -312,11 +322,10 @@ void StartIMU(void *argument)
                     {
                         uint8_t value;
                         ReadIMUReg(mainRxBuffer[2], &value);
-                        uint8_t cmd[2] = {0x81, 0x00};
                         uint8_t data[2];
                         data[0] = mainRxBuffer[2];
                         data[1] = value;
-                        USB_Transmit(cmd, data, 2);
+                        USB_Transmit(CMD_81_00, data, 2);
                     }
                 }
                 else if (mainRxBuffer[1] == 0x01)
@@ -324,15 +333,13 @@ void StartIMU(void *argument)
                     if (mainRxBufferLen == 4)
                     {
                         WriteIMUReg(mainRxBuffer[2], mainRxBuffer[3]);
-                        uint8_t cmd[2] = {0x81, 0x01};
                         uint8_t data = 0x00;
-                        USB_Transmit(cmd, &data, 1);
+                        USB_Transmit(CMD_81_01, &data, 1);
                     }
                     else
                     {
-                        uint8_t cmd[2] = {0x81, 0x01};
                         uint8_t data = 0x01;
-                        USB_Transmit(cmd, &data, 1);
+                        USB_Transmit(CMD_81_01, &data, 1);
                     }
                 }
                 else if (mainRxBuffer[1] == 0x02)
@@ -361,19 +368,17 @@ void StartIMU(void *argument)
                             valid = false;
                             break;
                         }
-                        uint8_t cmd[2] = {0x81, 0x02};
                         uint8_t data = 0x00;
                         if (!valid)
                         {
                             data = 0x01;
                         }
-                        USB_Transmit(cmd, &data, 1);
+                        USB_Transmit(CMD_81_02, &data, 1);
                     }
                     else
                     {
-                        uint8_t cmd[2] = {0x81, 0x02};
                         uint8_t data = 0x01;
-                        USB_Transmit(cmd, &data, 1);
+                        USB_Transmit(CMD_81_02, &data, 1);
                     }
                 }
             }
@@ -386,8 +391,7 @@ void StartIMU(void *argument)
             GetIMUGyro(measurements + 3);
             if (rtkModeValue)
             {
-                uint8_t cmd[2] = {0x81, 0x03};
-                USB_Transmit(cmd, (uint8_t *)measurements, 24);
+                USB_Transmit(CMD_81_03, (uint8_t *)measurements, 24);
             }
         }
         delayCount++;
@@ -431,15 +435,13 @@ void StartLORA(void *argument)
                         addr = addr << 8 | mainRxBuffer[3];
                         channel = mainRxBuffer[4];
                         SetLoraConf(addr, channel);
-                        uint8_t cmd[2] = {0x82, 0x00};
                         uint8_t data = 0x00;
-                        USB_Transmit(cmd, &data, 1);
+                        USB_Transmit(CMD_82_00, &data, 1);
                     }
                     else
                     {
-                        uint8_t cmd[2] = {0x82, 0x00};
                         uint8_t data = 0x01;
-                        USB_Transmit(cmd, &data, 1);
+                        USB_Transmit(CMD_82_00, &data, 1);
                     }
                 }
             }
