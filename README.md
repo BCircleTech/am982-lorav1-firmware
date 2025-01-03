@@ -28,6 +28,8 @@ The structure of a complete frame transmitted between the host and the module is
 |01 01|XX YY|Write data **YY** to the register **XX** of the MPU6050.|
 |01 02|XX|Set the frequency unsigned integer **XX** of the IMU data. Options are 1Hz, 5Hz, 10Hz, 50Hz, 100Hz.|
 |02 00|XX XX YY|Set the address XX XX \(from 00 00 to FF FF\) and channel YY \(from 00 to 1F\) of the Lora module.|
+|03 00|Latitude Longitude Altitude|Enable ENU coordinates output. The types of origin position **Latitude**, **Longitude**, and **Altitude** are doubles, each with 8 bytes.|
+|03 01||Disable ENU coordinates output.|
 
 ### Module to Host
 
@@ -42,6 +44,9 @@ The structure of a complete frame transmitted between the host and the module is
 |81 02|XX|**XX** is 00 for success, and 01 for failure.|
 |81 03|ACX ACY ACZ GRX GRY GRZ|Return the accelerations and angular velocities measured by the MPU6050. **ACX**, **ACY**, and **ACZ** represent the accelerations along the X-axis, Y-axis, and Z-axis, respectively. **GRX**, **GRY**, and **GRZ** represent the angular velocities along the X-axis, Y-axis, and Z-axis, respectively. Each value of acceleration and angular velocity is a float, with 4 bytes.|
 |82 00|XX|**XX** is 00 for success, and 01 for failure.|
+|83 00|XX|**XX** is 00 for success, and 01 for failure.|
+|83 01|XX|**XX** is 00 for success, and 01 for failure.|
+|83 02|**X** **Y** **Z**|Return the ENU coordinates. The types of coordinates **X**, **Y**, and **Z** are doubles, each with 8 bytes.|
 
 ### Protocol Summary
 
@@ -56,6 +61,9 @@ The structure of a complete frame transmitted between the host and the module is
 |01 02|81 02|Set the frequency of the IMU data.|
 ||81 03|Receive measurements from the IMU.|
 |02 00|82 00|Set the address and channel of the Lora module.|
+|03 00|83 00|Enable ENU coordinates output.|
+|03 01|83 01|Disable ENU coordinates output.|
+||83 02|Receive the ENU coordinates output.|
 
 ## RTK Initialization
 
