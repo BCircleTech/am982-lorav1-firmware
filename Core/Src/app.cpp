@@ -1,9 +1,12 @@
+#include <string>
 #include "protocol.h"
 
 extern "C"
 {
 #include "am982lorav1.h"
+#include "enu.h"
 #include "message_buffer.h"
+#include "stdio.h"
 #include "string.h"
 #include "usbd_cdc_if.h"
 
@@ -14,6 +17,8 @@ extern "C"
 #define CMD_01_01 (uint8_t *)"\x01\x01"
 #define CMD_01_02 (uint8_t *)"\x01\x02"
 #define CMD_02_00 (uint8_t *)"\x02\x00"
+#define CMD_03_00 (uint8_t *)"\x03\x00"
+#define CMD_03_01 (uint8_t *)"\x03\x01"
 #define CMD_80_00 (uint8_t *)"\x80\x00"
 #define CMD_80_01 (uint8_t *)"\x80\x01"
 #define CMD_80_02 (uint8_t *)"\x80\x02"
@@ -23,11 +28,15 @@ extern "C"
 #define CMD_81_02 (uint8_t *)"\x81\x02"
 #define CMD_81_03 (uint8_t *)"\x81\x03"
 #define CMD_82_00 (uint8_t *)"\x82\x00"
+#define CMD_83_00 (uint8_t *)"\x83\x00"
+#define CMD_83_01 (uint8_t *)"\x83\x01"
+#define CMD_83_02 (uint8_t *)"\x83\x02"
 
 uint8_t initFlag = 0;
 uint8_t rtkModeValue = 0;
 uint32_t rtkCOM3RxBuffAbortSize = 0;
 TickType_t lastRTKBaseTimestamp = 0;
+ENU *enu = nullptr;
 
 uint8_t rtkCOM1RxBuff[512];
 uint8_t rtkCOM3RxBuff[2048];
@@ -40,6 +49,7 @@ uint8_t loraRxBuff[512];
 MessageBufferHandle_t usbToMain;
 MessageBufferHandle_t mainToRTKCOM1;
 MessageBufferHandle_t rtkCOM1ToMain;
+MessageBufferHandle_t mainToRTKCOM3;
 MessageBufferHandle_t rtkCOM3ToMain;
 MessageBufferHandle_t mainToIMU;
 MessageBufferHandle_t mainToLora;
@@ -141,6 +151,7 @@ void StartMain(void *argument)
     usbToMain = xMessageBufferCreate(1024);
     mainToRTKCOM1 = xMessageBufferCreate(1024);
     rtkCOM1ToMain = xMessageBufferCreate(1024);
+    mainToRTKCOM3 = xMessageBufferCreate(1024);
     rtkCOM3ToMain = xMessageBufferCreate(4096);
     mainToIMU = xMessageBufferCreate(1024);
     mainToLora = xMessageBufferCreate(1024);
@@ -193,6 +204,10 @@ void StartMain(void *argument)
             else if (line[0] == 0x02)
             {
                 xMessageBufferSend(mainToLora, (const void *)line.c_str(), line.length(), 10);
+            }
+            else if (line[0] == 0x03)
+            {
+                xMessageBufferSend(mainToRTKCOM3, (const void *)line.c_str(), line.length(), 10);
             }
         }
 
@@ -271,13 +286,66 @@ void StartRTKCOM1(void *argument)
 
 void StartRTKCOM3(void *argument)
 {
+    uint8_t mainRxBuffer[1024];
+    uint32_t mainRxBufferLen;
     uint8_t rtkCOM3RxBuffer[2048];
     uint32_t rtkCOM3RxBufferLen;
+
+    double lla[3];
+    double xyz[3];
+
+    char nmea[6][16];
+    int nmeaRes;
 
     while (1)
     {
         if (initFlag)
         {
+            mainRxBufferLen = xMessageBufferReceive(mainToRTKCOM3, mainRxBuffer, sizeof(mainRxBuffer), 0);
+            if (mainRxBufferLen > 0)
+            {
+                // parse mainRxBuffer
+                if (mainRxBuffer[1] == 0x00)
+                {
+                    if (mainRxBufferLen == 26)
+                    {
+                        double latitude, longitude, altitude;
+                        latitude = *(double *)(mainRxBuffer + 2);
+                        longitude = *(double *)(mainRxBuffer + 10);
+                        altitude = *(double *)(mainRxBuffer + 18);
+                        if (enu)
+                        {
+                            delete enu;
+                        }
+                        enu = new ENU(latitude, longitude, altitude);
+                        uint8_t data = 0x00;
+                        USB_Transmit(CMD_83_00, &data, 1);
+                    }
+                    else
+                    {
+                        uint8_t data = 0x01;
+                        USB_Transmit(CMD_83_00, &data, 1);
+                    }
+                }
+                else if (mainRxBuffer[1] == 0x01)
+                {
+                    if (mainRxBufferLen == 2)
+                    {
+                        if (enu)
+                        {
+                            delete enu;
+                            enu = nullptr;
+                        }
+                        uint8_t data = 0x00;
+                        USB_Transmit(CMD_83_01, &data, 1);
+                    }
+                    else
+                    {
+                        uint8_t data = 0x01;
+                        USB_Transmit(CMD_83_01, &data, 1);
+                    }
+                }
+            }
             rtkCOM3RxBufferLen = xMessageBufferReceive(rtkCOM3ToMain, rtkCOM3RxBuffer, sizeof(rtkCOM3RxBuffer), 0);
             if (rtkCOM3RxBufferLen > 0)
             {
@@ -285,6 +353,31 @@ void StartRTKCOM3(void *argument)
                 if (rtkModeValue)
                 {
                     USB_Transmit(CMD_80_03, rtkCOM3RxBuffer, rtkCOM3RxBufferLen);
+                    if (enu)
+                    {
+                        nmeaRes = sscanf((char *)rtkCOM3RxBuffer, "$GNGGA,%*[^,],%[^,],%[^,],%[^,],%[^,],%*[^,],%*[^,],%*[^,],%[^,],%*[^,],%[^,]",
+                                         nmea[0], nmea[1], nmea[2], nmea[3], nmea[4], nmea[5]);
+                        if (nmeaRes == 6)
+                        {
+                            std::string ad(nmea[0], 2);
+                            std::string am(nmea[0] + 2);
+                            std::string bd(nmea[2], 3);
+                            std::string bm(nmea[2] + 3);
+                            lla[0] = std::stoi(ad) + std::stod(am) / 60.0;
+                            lla[1] = std::stoi(bd) + std::stod(bm) / 60.0;
+                            lla[2] = std::stod(nmea[4]) + std::stod(nmea[5]);
+                            if (nmea[1][0] == 'S')
+                            {
+                                lla[0] = -lla[0];
+                            }
+                            if (nmea[3][0] == 'W')
+                            {
+                                lla[1] = -lla[1];
+                            }
+                            enu->LLA2ENU(lla[0], lla[1], lla[2], xyz[0], xyz[1], xyz[2]);
+                            USB_Transmit(CMD_83_02, (uint8_t *)xyz, 24);
+                        }
+                    }
                 }
                 else
                 {
