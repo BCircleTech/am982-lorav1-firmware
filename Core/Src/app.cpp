@@ -40,7 +40,7 @@ ENU *enu = nullptr;
 
 uint8_t rtkCOM1RxBuff[512];
 uint8_t rtkCOM3RxBuff[2048];
-uint8_t rtkCOM3RxBuffAbort[2048];
+uint8_t rtkCOM3RxBuffAbort[4096];
 uint8_t loraRxBuff[512];
 
 // uint8_t dbug[128] = {0};
@@ -152,7 +152,7 @@ void StartMain(void *argument)
     mainToRTKCOM1 = xMessageBufferCreate(1024);
     rtkCOM1ToMain = xMessageBufferCreate(1024);
     mainToRTKCOM3 = xMessageBufferCreate(1024);
-    rtkCOM3ToMain = xMessageBufferCreate(4096);
+    rtkCOM3ToMain = xMessageBufferCreate(8192);
     mainToIMU = xMessageBufferCreate(1024);
     mainToLora = xMessageBufferCreate(1024);
     loraToMain = xMessageBufferCreate(1024);
@@ -288,7 +288,7 @@ void StartRTKCOM3(void *argument)
 {
     uint8_t mainRxBuffer[1024];
     uint32_t mainRxBufferLen;
-    uint8_t rtkCOM3RxBuffer[2048];
+    uint8_t rtkCOM3RxBuffer[4096];
     uint32_t rtkCOM3RxBufferLen;
 
     double lla[3];
