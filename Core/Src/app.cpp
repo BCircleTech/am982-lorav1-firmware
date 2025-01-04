@@ -7,7 +7,6 @@ extern "C"
 #include "enu.h"
 #include "message_buffer.h"
 #include "stdio.h"
-#include "string.h"
 #include "usbd_cdc_if.h"
 
 #define CMD_00_00 (uint8_t *)"\x00\x00"
@@ -34,13 +33,10 @@ extern "C"
 
 uint8_t initFlag = 0;
 uint8_t rtkModeValue = 0;
-uint32_t rtkCOM3RxBuffAbortSize = 0;
-TickType_t lastRTKBaseTimestamp = 0;
 ENU *enu = nullptr;
 
 uint8_t rtkCOM1RxBuff[512];
 uint8_t rtkCOM3RxBuff[2048];
-uint8_t rtkCOM3RxBuffAbort[4096];
 uint8_t loraRxBuff[512];
 
 // uint8_t dbug[128] = {0};
@@ -74,38 +70,22 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
     {
         if (HAL_UARTEx_GetRxEventType(huart) != HAL_UART_RXEVENT_HT)
         {
-            TickType_t currentRTKBaseTimestamp = xTaskGetTickCountFromISR();
-            TickType_t deltaTime = currentRTKBaseTimestamp - lastRTKBaseTimestamp;
             if (initFlag)
             {
-                if (xMessageBufferIsEmpty(rtkCOM3ToMain) == pdTRUE || deltaTime < 750)
+                if (xMessageBufferIsEmpty(rtkCOM3ToMain) == pdTRUE)
                 {
-                    if (rtkCOM3RxBuffAbortSize && deltaTime < 750)
-                    {
-                        memcpy(rtkCOM3RxBuffAbort + rtkCOM3RxBuffAbortSize, rtkCOM3RxBuff, size);
-                        xMessageBufferSendFromISR(rtkCOM3ToMain, rtkCOM3RxBuffAbort, rtkCOM3RxBuffAbortSize + size, &xHigherPriorityTaskWoken);
-                        // dbugLen = snprintf((char *)dbug, sizeof(dbug), "Send: %ld*\n", rtkCOM3RxBuffAbortSize + size);
-                        // HAL_UART_Transmit_DMA(boardUARTPtr, dbug, dbugLen);
-                    }
-                    else
-                    {
-                        xMessageBufferSendFromISR(rtkCOM3ToMain, rtkCOM3RxBuff, size, &xHigherPriorityTaskWoken);
-                        // dbugLen = snprintf((char *)dbug, sizeof(dbug), "Send: %d\n", size);
-                        // HAL_UART_Transmit_DMA(boardUARTPtr, dbug, dbugLen);
-                    }
-                    rtkCOM3RxBuffAbortSize = 0;
+                    xMessageBufferSendFromISR(rtkCOM3ToMain, rtkCOM3RxBuff, size, &xHigherPriorityTaskWoken);
+                    // dbugLen = snprintf((char *)dbug, sizeof(dbug), "Send: %d\n", size);
+                    // HAL_UART_Transmit_DMA(boardUARTPtr, dbug, dbugLen);
                     LedErrOff();
                 }
                 else
                 {
-                    memcpy(rtkCOM3RxBuffAbort, rtkCOM3RxBuff, size);
-                    rtkCOM3RxBuffAbortSize = size;
                     // dbugLen = snprintf((char *)dbug, sizeof(dbug), "Abort: %d\n", size);
                     // HAL_UART_Transmit_DMA(boardUARTPtr, dbug, dbugLen);
                     LedErrOn();
                 }
             }
-            lastRTKBaseTimestamp = currentRTKBaseTimestamp;
         }
         HAL_UARTEx_ReceiveToIdle_DMA(rtkCOM3Ptr, rtkCOM3RxBuff, sizeof(rtkCOM3RxBuff));
     }
