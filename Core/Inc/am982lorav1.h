@@ -375,6 +375,14 @@
 #define LORA_MODE_SLEEP 2
 #define LORA_MODE_CONF 3
 
+#define PARA_FLASH_ADDR 0x080E0000
+#define PARA_FLASH_SIZE 128 // n*32
+#define PARA_FLASH_SECTOR FLASH_SECTOR_7
+#define PARA_IMU_CALI 0
+#define PARA_IMU_CALI_SIZE 96
+#define PARA_IMU_FREQ 96
+#define PARA_IMU_FREQ_SIZE 1
+
 extern UART_HandleTypeDef *rtkCOM1Ptr;
 extern UART_HandleTypeDef *rtkCOM3Ptr;
 extern UART_HandleTypeDef *boardUARTPtr;
@@ -406,6 +414,10 @@ void SetIMUSampleRate(unsigned int rate);
 void GetIMUAccel(float accel[3]);
 void GetIMUGyro(float gyro[3]);
 void GetIMUTemp(float *temp);
+void SetIMUCaliPara(float ka[3][3], float ba[3], float kg[3][3], float bg[3]);
+void GetIMUCaliPara(float ka[3][3], float ba[3], float kg[3][3], float bg[3]);
+void SetIMUFreqPara(uint8_t freq);
+void GetIMUFreqPara(uint8_t *freq);
 
 void SetLoraMode(uint8_t mode);
 void GetLoraAUX(uint8_t *aux);

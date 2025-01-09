@@ -17,6 +17,33 @@ uint8_t loraConfFlag = 0;
 uint8_t rtkMode;
 uint8_t rtkModeFlag = 0;
 
+void ReadFlashPara(uint32_t addr, uint32_t size, uint8_t *para)
+{
+    memcpy(para, (uint8_t *)(PARA_FLASH_ADDR + (volatile uint32_t)addr), size);
+}
+
+void WriteFlashPara(uint32_t addr, uint32_t size, uint8_t *para)
+{
+    uint8_t data[PARA_FLASH_SIZE];
+    memcpy(data, (uint8_t *)(PARA_FLASH_ADDR), PARA_FLASH_SIZE);
+    memcpy(data + addr, para, size);
+
+    HAL_FLASH_Unlock();
+    uint32_t eraseErro;
+    FLASH_EraseInitTypeDef erase;
+    erase.TypeErase = FLASH_TYPEERASE_SECTORS;
+    erase.Banks = FLASH_BANK_1;
+    erase.Sector = PARA_FLASH_SECTOR;
+    erase.NbSectors = 1;
+    erase.VoltageRange = FLASH_VOLTAGE_RANGE_4;
+    HAL_FLASHEx_Erase(&erase, &eraseErro);
+    for (uint32_t i = 0; i < PARA_FLASH_SIZE; i += 32)
+    {
+        HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, PARA_FLASH_ADDR + (volatile uint32_t)i, (uint32_t)(data + i));
+    }
+    HAL_FLASH_Lock();
+}
+
 void LedRunOn()
 {
     HAL_GPIO_WritePin(LED_RUN_GPIO_Port, LED_RUN_Pin, GPIO_PIN_SET);
@@ -426,6 +453,36 @@ void GetIMUTemp(float *temp)
     ReadIMUReg(MPU6050_RA_TEMP_OUT_H, &th);
     t = th << 8 | tl;
     *temp = (t - 521) / 340.0 + 36.53;
+}
+
+void SetIMUCaliPara(float ka[3][3], float ba[3], float kg[3][3], float bg[3])
+{
+    uint8_t para[PARA_IMU_CALI_SIZE];
+    memcpy(para, ka, 9 * sizeof(float));
+    memcpy(para + 9 * sizeof(float), ba, 3 * sizeof(float));
+    memcpy(para + 12 * sizeof(float), kg, 9 * sizeof(float));
+    memcpy(para + 21 * sizeof(float), bg, 3 * sizeof(float));
+    WriteFlashPara(PARA_IMU_CALI, PARA_IMU_CALI_SIZE, para);
+}
+
+void GetIMUCaliPara(float ka[3][3], float ba[3], float kg[3][3], float bg[3])
+{
+    uint8_t para[PARA_IMU_CALI_SIZE];
+    ReadFlashPara(PARA_IMU_CALI, PARA_IMU_CALI_SIZE, para);
+    memcpy(ka, para, 9 * sizeof(float));
+    memcpy(ba, para + 9 * sizeof(float), 3 * sizeof(float));
+    memcpy(kg, para + 12 * sizeof(float), 9 * sizeof(float));
+    memcpy(bg, para + 21 * sizeof(float), 3 * sizeof(float));
+}
+
+void SetIMUFreqPara(uint8_t freq)
+{
+    WriteFlashPara(PARA_IMU_FREQ, PARA_IMU_FREQ_SIZE, &freq);
+}
+
+void GetIMUFreqPara(uint8_t *freq)
+{
+    ReadFlashPara(PARA_IMU_FREQ, PARA_IMU_FREQ_SIZE, freq);
 }
 
 /*
